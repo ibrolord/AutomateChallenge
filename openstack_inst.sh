@@ -3,7 +3,7 @@ echo "Automated Openstack Installation "
 echo
 echo "if you dont want to touch your screen look at the script and replace out the logics with hard variables"
 echo
-echo "**********************************************************"
+echo "*******************************************************************************************************"
 echo
 
 echo  "this is meant for CentOS at the moment, its recomended to run as root, you are running as $(whoami) "
@@ -103,19 +103,12 @@ fi
 
 #test -f `date +"%d.%m.%y"` && rm -f 
 
-for i in {1..5}; do
-	#statements
-	echo $MPASS
-	echo $KPASS
-	echo $NPASS
-#	sleep 5
-done
 
 ##backup
 cp -f `date +"%d.%m.%y"`.conf `date +"%d.%m.%y"`.conf.bak
 
 ##send password to sed
-sleep 5
+#sleep 3
 
 sed -i "s/^CONFIG_NTP_SERVERS=.*/c\CONFIG_NTP_SERVERS=0.ro.pool.ntp.org/; s/^CONFIG_PROVISION_DEMO=.*/c\CONFIG_PROVISION_DEMO=n/; s/^CONFIG_HORIZON_SSL=.*/c\CONFIG_HORIZON_SSL=y/; s/^CONFIG_MARIADB_PW=.*/c\CONFIG_MARIADB_PW=$MPASS/; s/^CONFIG_NAGIOS_PW=.*/c\CONFIG_NAGIOS_PW=$NPASS/; s/^CONFIG_KEYSTONE_ADMIN_PW=.*/c\CONFIG_KEYSTONE_ADMIN_PW=$KPASS/" `date +"%d.%m.%y"`.conf
 
