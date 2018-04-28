@@ -14,9 +14,9 @@ echo
 echo "we will need these passwords moving forward"
 echo -n "You may want to type your mariadb password bro: "
 read -s MPASS
-echo -n "n You may want to type your nagios password bro: "
+echo -n "\n You may want to type your nagios password bro: "
 read -s NPASS
-echo -n "n You may want to type your admin password: "
+echo -n "\n You may want to type your admin password: "
 read -s KPASS
 
 
@@ -35,7 +35,7 @@ read -r QUES
 if [[ $QUES -eq "y" || $QUES -eq "yes" ]]; then
 	exec 5> $DIR/debug.txt
 	BASH_XTRACEFD="5"
-	PS4='LINENO: '
+	PS4='${LINENO}: '
 	set -x  
 fi
 
