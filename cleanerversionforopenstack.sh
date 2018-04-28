@@ -14,9 +14,9 @@ echo
 echo "we will need these passwords moving forward"
 echo -n "You may want to type your mariadb password bro: "
 read -s MPASS
-echo -n "You may want to type your nagios password bro: "
+echo -n "n You may want to type your nagios password bro: "
 read -s NPASS
-echo -n "You may want to type your admin password: "
+echo -n "n You may want to type your admin password: "
 read -s KPASS
 
 
@@ -38,6 +38,19 @@ if [[ $QUES -eq "y" || $QUES -eq "yes" ]]; then
 	PS4='LINENO: '
 	set -x  
 fi
+
+#lets see your IP address
+#IPADD=$(hostname -I)
+#for ( ip in ${IPADD[*]} ); do
+#	$ip
+#done
+
+#echo -n "Do you want to change your IP your current IP is $ip "
+#sleep 5
+
+#read -r $IP
+##	echo -n "Kindly type your IP"
+#fi
 
 systemctl stop postfix firewalld NetworkManager
 systemctl disable postfix firewalld NetworkManager
@@ -83,7 +96,7 @@ fi
 
 LONG=`date +"%d.%m.%y"`.conf
 
-packstack --gen-answer-file=`date +"%d.%m.%y"`.conf
+packstack --gen-answer-file=$LONG
 if [[ $(echo $?) == 1 ]]; then
 	 wget https://bootstrap.pypa.io/ez_setup.py -O - | python
 	 
@@ -92,18 +105,22 @@ if [[ $(echo $?) == 1 ]]; then
 			echo
 	 		echo $?
 	 	else
-	 		packstack --gen-answer-file=`date +"%d.%m.%y"`.conf
+	 		packstack --gen-answer-file=$LONG
 	 	fi
 	 fi
 #test -f `date +"%d.%m.%y"` && rm -f 
 
 ##backup
-cp -f `date +"%d.%m.%y"`.conf `date +"%d.%m.%y"`.conf.bak
+cp -f $LONG $LONG.bak
 
 ##send password to sed
 #sleep 3
-sed -i "s/^CONFIG_NTP_SERVERS=.*/c\CONFIG_NTP_SERVERS=0.ro.pool.ntp.org/; s/^CONFIG_PROVISION_DEMO=.*/c\CONFIG_PROVISION_DEMO=n/; s/^CONFIG_HORIZON_SSL=.*/c\CONFIG_HORIZON_SSL=y/; s/^CONFIG_MARIADB_PW=.*/c\CONFIG_MARIADB_PW=$MPASS/; s/^CONFIG_NAGIOS_PW=.*/c\CONFIG_NAGIOS_PW=$NPASS/; s/^CONFIG_KEYSTONE_ADMIN_PW=.*/c\CONFIG_KEYSTONE_ADMIN_PW=$KPASS/" `date +"%d.%m.%y"`.conf
+cp -f $LONG $LONG.dbg
+sed -i "s/^CONFIG_NTP_SERVERS=.*/c\CONFIG_NTP_SERVERS=0.ro.pool.ntp.org/; s/^CONFIG_PROVISION_DEMO=.*/c\CONFIG_PROVISION_DEMO=n/; s/^CONFIG_HORIZON_SSL=.*/c\CONFIG_HORIZON_SSL=y/; s/^CONFIG_MARIADB_PW=.*/c\CONFIG_MARIADB_PW=$MPASS/; s/^CONFIG_NAGIOS_PW=.*/c\CONFIG_NAGIOS_PW=$NPASS/; s/^CONFIG_KEYSTONE_ADMIN_PW=.*/c\CONFIG_KEYSTONE_ADMIN_PW=$KPASS/" $LONG
 
+cp $LONG $LONG.dbg2
+cp -f $LONG.dbg2 $LONG
+cp -f $LONG.dbg2 $LONG.bro
 ##test password and sed success
 if [[ $(echo $?) == 1 ]]; then
 	echo "Bruh what did you do"
@@ -119,12 +136,12 @@ fi
 fi
 
 ##continue if that works
-packstack --answer-file `date +"%d.%m.%y"`.conf
+packstack --answer-file=$LONG
 if [[ $(echo $?) == 1 && $(type -p httpd) ]]; then
 	echo "I will disable 443 listen sorry"
 	##test for httpd issues
 	test -f /etc/httpd/conf.d/ssl.conf && cp -f /etc/httpd/conf.d/ssl.conf /etc/httpd/conf.d/ssl.conf.bak && sed -i "s/'Listen 443 https'/'#Listen 443 https'/" /etc/httpd/conf.d/ssl.conf || echo " Nevermind"
 	systemctl restart httpd.service
 fi
-sed -i "s/^CONFIG_NTP_SERVERS=.*/c\CONFIG_NTP_SERVERS=0.ro.pool.ntp.org/; s/^CONFIG_PROVISION_DEMO=.*/c\CONFIG_PROVISION_DEMO=n/; s/^CONFIG_HORIZON_SSL=.*/c\CONFIG_HORIZON_SSL=y/; s/^CONFIG_MARIADB_PW=.*/c\CONFIG_MARIADB_PW=$MPASS/; s/^CONFIG_NAGIOS_PW=.*/c\CONFIG_NAGIOS_PW=$NPASS/; s/^CONFIG_KEYSTONE_ADMIN_PW=.*/c\CONFIG_KEYSTONE_ADMIN_PW=$KPASS/" `date +"%d.%m.%y"`.conf
+#sed -i "s/^CONFIG_NTP_SERVERS=.*/c\CONFIG_NTP_SERVERS=0.ro.pool.ntp.org/; s/^CONFIG_PROVISION_DEMO=.*/c\CONFIG_PROVISION_DEMO=n/; s/^CONFIG_HORIZON_SSL=.*/c\CONFIG_HORIZON_SSL=y/; s/^CONFIG_MARIADB_PW=.*/c\CONFIG_MARIADB_PW=$MPASS/; s/^CONFIG_NAGIOS_PW=.*/c\CONFIG_NAGIOS_PW=$NPASS/; s/^CONFIG_KEYSTONE_ADMIN_PW=.*/c\CONFIG_KEYSTONE_ADMIN_PW=$KPASS/" `date +"%d.%m.%y"`.conf
 ##the second sed was added out of frustrtion, I could not figure out what kept overwriting the answer files
