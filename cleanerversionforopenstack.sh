@@ -87,13 +87,6 @@ yum update -y
 yum install -y openstack-packstack
 echo "Creating ~/openst/ directory if it does not exist because there is an issue with installing Openstack and I am installing the pythonsetup kit in this directory"
 
-DIR="$HOME/openst/"
-if [ ! -d $DIR ]; then
-	 mkdir ~/openst/ && cd ~/openst/
-else
-	cd ~/openst/
-fi
-
 LONG=`date +"%d.%m.%y"`.conf
 
 packstack --gen-answer-file=$LONG
