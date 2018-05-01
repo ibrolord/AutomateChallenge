@@ -126,7 +126,7 @@ if [[ $IPA =~ ^y(es)?$ ]]; then
 	read -r IP
 		if [[ ! $IP =~ $VALIDIP ]]; then
 			echo "Your IP is not valid, please type again: "
-			read -r IPA
+			read -r IP
 		fi
 fi
 
@@ -160,7 +160,7 @@ sed -i "s/^CONFIG_NTP_SERVERS=.*/CONFIG_NTP_SERVERS=0.ro.pool.ntp.org/; s/^CONFI
 if [[ $(echo $?) == 1 ]]; then
 	echo "Bruh what did you do"
 	echo 
-	echo -n "Would you like to check your file y/n"
+	echo -n "Would you like to check your file y/n: "
 	read ANS
 	if [[ $ANS =~ ^y(es)?$ ]]; then
 		if [[ -f `date +"%d.%m.%y"`.conf ]]; then
