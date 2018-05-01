@@ -29,6 +29,16 @@ echo -n "A debug will help you review this script, do a tail -f ~/openst/debug.t
 echo -n "Do you want to debug? "
 read -r QUES
 
+##send to debug file with line number
+##if [[ $QUES -eq "y" || $QUES -eq "yes" ]]; then  thank you https://regexr.com/
+
+if [[ $QUES =~ ^y(es)?$ ]]; then
+	exec 5> $DIR/debug.txt
+	BASH_XTRACEFD="5"
+	PS4='${LINENO}: '
+	set -x  
+fi
+
 echo "Creating ~/openst/ directory if it does not exist because there is an issue with installing Openstack and I am installing the pythonsetup kit in this directory"
 sleep 2
 ##needed dir for openstak
@@ -38,16 +48,6 @@ if [ ! -d $DIR ]; then
 	 mkdir ~/openst/ && cd ~/openst/
 else
 	cd ~/openst/
-fi
-
-##send to debug file with line number
-##if [[ $QUES -eq "y" || $QUES -eq "yes" ]]; then  thank you https://regexr.com/
-
-if [[ $QUES =~ ^y(es)?$ ]]; then
-	exec 5> $DIR/debug.txt
-	BASH_XTRACEFD="5"
-	PS4='${LINENO}: '
-	set -x  
 fi
 
 systemctl stop postfix firewalld NetworkManager
