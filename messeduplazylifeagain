@@ -1,0 +1,467 @@
+#!/bin/bash
+echo "################################################################"
+echo "So you have messed your server again"
+echo "################################################################"
+echo -n "this will setup your website environment with apache(I hope to god that you chose the right setup while you installed your script, this is for CentOS cause Ubuntu is trash"
+echo
+
+##I am not even going to ask to debug
+debugtin(){
+	exec 5> debug.txt
+	BASH_XTRACEFD="5"
+	PS4='${LINENO}:'
+	set -x
+	echo
+	echo "************************************************************************************************************"
+	echo "there is a debug file now in your current directory  $(pwd), you can tail -f debug.txt to see in real time"
+	echo "************************************************************************************************************"
+	echo
+}
+debugtin
+
+##info gathering
+infotin(){
+
+read -p "Enter your wordpress DATABASE user: " DUSER
+echo 
+read -s -p "Enter your wordpress DATABASE password: " PASS
+echo
+read -p "Enter your Docker SSH port (for bastion): " PSSH
+echo
+read -p "Enter your Docker brackets port (for nodejsserver): " PBRA
+echo
+read -p "Enter your Docker misc port (for nodejsserver): " PRAN
+echo
+read -p "Do you use Xen server? (this is to install Xen extension)(yes/no): " QXEN
+echo
+##look I know that last one disapproves the principles of least to know but, I been there
+
+read -p "Do you want to setup static networking now?(yes/no): " FQUES
+}
+infotin
+echo
+##vheck for typo
+read -p "Did you make a typo?(yes/no): " TYPQ 
+if [[ $TYPQ =~ y|Y(es)$? ]]; then
+	infotin
+fi
+##function to config network
+netwokbro(){
+if [[ ! -f /etc/sysconfig/network-scripts/ifcfg-eth0 ]]; then
+	echo "It looks like the usual ifcfg-eth0 does not exist, please pick the appropriate one and type carefully, I have not cleaned this script yet, so you only have to type it well"
+	ls /etc/sysconfig/network-scripts/
+	read -p "Select a file: " IPFILE
+	while [[ ! -f /etc/sysconfig/network-scripts/$IPFILE ]]; do
+		echo "Youu typed shit, pick a file that exists"
+		read -p "Select a file: " IPFILE
+	done
+	cp /etc/sysconfig/network-scripts/$IPFILE /etc/sysconfig/network-scripts/$IPFILE.bak
+	echo "this only happens rarely so sorry, just change the BOOTPROTO to none, add your IPADDR GATEWAY DNS1-3 PREFIX ie 16, and god be with you "
+	sleep 3
+	vi +'se nu' /etc/sysconfig/network-scripts/$IPFILE
+
+else
+
+	NETF=`grep 'BOOTPROTO="dhcp"' /etc/sysconfig/network-scripts/ifcfg-eth0`
+	BRUH=/etc/sysconfig/network-scripts/ifcfg-eth0
+	if [[ $NETF ]]; then
+		cp /etc/sysconfig/network-scripts/ifcfg-eth0 /etc/sysconfig/network-scripts/ifcfg-eth0.bak
+		echo IPADDR="$IPADDR" >> $BRUH
+		echo DNS1="8.8.8.8" >> $BRUH 
+		echo DNS2="$GATEWAY" >> $BRUH
+		echo DNS3="8.8.4.4" >> $BRUH
+		echo GATEWAY="$GATEWAY" >> $BRUH
+		echo PREFIX="$PREF" >> $BRUH
+		sed -i 's/^BOOTPROTO="dhcp"/BOOTPROTO="static"/' $BRUH
+	fi
+
+	test -f /etc/sysconfig/network-scripts/ifcfg-eth0 && cp /etc/sysconfig/network-scripts/ifcfg-eth0 /etc/sysconfig/network-scripts/ifcfg-eth0.bak && sed -i "s/^GATEWAY=.*/GATEWAY=$GATEWAY/;s/^DNS2=.*/DNS2=$GATEWAY/;s/^IPADDR=.*/IPADDR=$IPADDR/" /etc/sysconfig/network-scripts/ifcfg-eth0 || echo "ERROR SOMEWHERE" && sleep 10
+	echo "Clean up your /etc/resolv.conf"
+	sleep 2
+	vi +"se nu" /etc/resolv.conf 
+fi
+
+service network restart
+
+}
+
+##if to set up network or nah
+if [[ $FQUES =~ ^y|Y(es)$? ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
+	read -p "enter your ip: " IPADDR 
+	echo
+	read -p "enter your gateway: " GATEWAY 
+	echo
+	read -p "enter your prefix (ie 16): " PREF 
+	echo
+	netwokbro
+fi
+
+yum update -y
+
+##test fir xen if the extension is mounted
+##might want to take out if not a xen user
+xentin(){
+if [[ ! $(rpm -qa | grep xe-guest) ]]; then
+	until [[ `blkid /dev/sr0` ]]; do
+		echo "mount the agent into cdrom"
+		sleep 5
+	done
+
+	if [[ `blkid /dev/sr0` ]]; then
+		echo "Trying to mount the agent, I hope you dont have anything in /mnt"
+		mount /dev/cdrom /mnt/
+		##mout into my own directory of chosing
+		if [[ $(echo $?) == 1 ]]; then
+			caro=`find /mnt/ -mindepth 1 -type d`
+			echo "issues mounting" && if [[ $caro ]]; then mkdir /mnt/xe-gu/; fi && mount -o ro,force /dev/cdrom /mnt/xe-gu/ && bash /mnt/xe-gu/Linux/install.sh -n || echo "Sometin wong" && rm -rf /mnt/xe-gu && mkdir /mnt/xe-gu || echo "Sometin wong again will unmount dir" && umount /mnt && mkdir /mnt/xe-gu
+		fi
+		if [[ -f /mnt/Linux/install.sh ]]; then bash /mnt/Linux/install.sh -n; fi
+	fi
+fi
+}
+
+##test the question I asked before
+if [[ $QXEN =~ y|Y(es)$? ]]; then
+	xentin
+fi
+
+##installs Webserver 
+yum grouplist
+yum groupinstall "Basic Web Server" -y
+
+##Install Misc
+yum install system-config-network docker php httpd ifconfig mariadb-server mariadb git epel-release tmux -y && yum install lsyncd -y
+yum --enablerepo=extras install epel-release
+
+
+##prep the services
+service httpd restart
+service mariadb restart
+service docker restart
+service lsyncd restart
+chkconfig httpd on
+chkconfig docker on
+chkconfig mariadb on
+chkconfig lsyncd on
+
+##prep docker dirs
+mkdir /$USER/dockerstuff && chmod -R 775 /$USER/dockerstuff
+mkdir /$USER/websitestuff && chmod -R 775 /$USER/websitestuff
+
+##run docker with the ports specified
+docker run  -it -d -p $PSSH:$PSSH --name Bastion ubuntu /bin/bash
+#docker exec -ti Bastion /bin/bash -c "apt update ; apt upgrade -y ; apt install ufw -y ; ufw enable ; ufw allow 789789 "
+
+##commnds for docker
+NODES="exec 5> $USER/debug.txt ;
+BASH_XTRACEFD="5" ;
+PS4='${LINENO}:' ;
+set -x ;
+apt update ; 
+apt upgrade -y ; 
+apt install vim nano nodejs -y ; 
+apt install git npm -y ;
+npm install -g brackets ;
+ln -s /usr/local/tmp ~/tmp ;
+apt install ufw -y ;
+ufw enable ;
+ufw allow $PBRA ;
+service ufw restart ;
+ufw reload ;
+exit
+"
+
+##I would rather sync in isolated than give access
+##set firewall
+firewall-cmd --zone=public --permanent --add-port=$PSSH/tcp
+firewall-cmd --zone=public --permanent --add-port=$PRAN/tcp
+firewall-cmd --zone=public --permanent --add-port=$PBRA/tcp
+firewall-cmd --zone=public --permanent --add-port=$PBRA/udp
+firewall-cmd --zone=public --permanent --add-port=$PSSH/udp
+firewall-cmd --zone=public --permanent --add-port=80/tcp
+firewall-cmd --zone=public --permanent --add-port=80/udp
+firewall-cmd --zone=public --permanent --add-port=443/tcp
+firewall-cmd --zone=public --permanent --add-port=443/udp
+firewall-cmd --reload
+
+##setup docker brakets nodejs server
+docker run --privileged -dit -p $PRAN:$PRAN -p $PBRA:$PBRA -v /$USER/websitestuff:/var/www --name nodejsserver ubuntu  
+docker exec -ti nodejsserver /bin/bash -c  "$NODES"
+#docker exec nodejsserver /bin/bash -c  "brackets --port $PBRA --proj-dir /$USER/websitestuff --supp-dir ~/my-project/ " &
+#docker exec -ti nodejsserver /bin/bash -c  "echo 'brackets --port $PBRA --proj-dir /$USER/websitestuff --supp-dir ~/my-project/ &' >> /etc/rc.local" 
+#docker inspect --format="{{.Id}}" namebrac
+echo "committing the containers into the hand of the lord"
+docker commit nodejsserver
+docker commit Bastion
+#echo "alias nodejsserver=\"docker exec -ti nodejsserver /bin/bash -c  \"brackets --port $PBRA --proj-dir /$USER/websitestuff --supp-dir ~/my-project/ \" &" >> ~/.bashrc
+echo 'docker exec -ti nodejsserver /bin/bash -c  "brackets --port $PBRA --proj-dir /$USER/websitestuff --supp-dir ~/my-project/ " & is the command to start your brackets server'
+docker exec nodejsserver /bin/bash -c  "brackets --port $PBRA --proj-dir /$USER/websitestuff --supp-dir ~/my-project/ " &
+
+##add docker to startup
+echo "docker start Bastion" >> /etc/rc.local
+#echo "docker start nodejsserver" >> /etc/rc.local
+
+##deamonize the dirs neccessary
+lsyncd -rsync /root/websitestuff/ /var/www/html/ -insist -delay 0
+echo "lsyncd -rsync /root/websitestuff/ /var/www/html/ -insist -delay 0" >> /etc/rc.local
+
+##setup wordpress database
+wordpresstin(){
+
+		mysql -u root -e "FLUSH PRIVILEGES;"
+		mysql -u root -e "CREATE DATABASE wordpress;"
+		mysql -u root -e "CREATE USER $DUSER@localhost IDENTIFIED BY '$PASS';"
+		mysql -u root -e "GRANT ALL PRIVILEGES ON wordpress.* TO $DUSER@localhost IDENTIFIED BY '$PASS';"
+		mysql -u root -e "FLUSH PRIVILEGES;"
+
+		yum install php-gd php-mysql -y
+
+		mkdir /var/www/html/wordpress && wget http://wordpress.org/latest.tar.gz
+		tar -xzvf latest.tar.gz -C /var/www/html/ && find -name ^late*gz$ -delete
+		chown -R apache:apache /var/www/html/*
+
+		cp /var/www/html/wordpress/wp-config-sample.php /var/www/html/wordpress/wp-config.php
+
+		sed -i "s/^define('DB_NAME', 'database_name_here')/define('DB_NAME', 'wordpress')/ ; s/^define('DB_USER', 'username_here')/define('DB_USER', '$DUSER')/ ; s/^define('DB_PASSWORD', 'password_here')/define('DB_PASSWORD', '$PASS')/ " /var/www/html/wordpress/wp-config.php
+		service httpd restart
+}
+wordpresstin
+
+##Additions to install Powershell
+##powershell
+
+while true; do
+	echo
+	echo "Additional unneccessary fancy stuff"
+	echo "1) installs powershell"
+	echo "2) installs vagrant "
+	echo "3) installs byobu"
+	echo "4) installs AWSCLI"
+	echo "5) installs openstack lol ok"
+	echo "6) installs FTP server"
+	echo "7) setup periodic mysql backup"
+	echo "8) setup HTTPS with Let's Encrypt"
+	echo "b) bye"
+	echo
+	read WATSITGONBE
+
+	case $WATSITGONBE in
+		1)	echo "installing powershell"
+			curl https://packages.microsoft.com/config/rhel/7/prod.repo | sudo tee /etc/yum.repos.d/microsoft.repo
+
+			if [[ -d ~/powershell ]]; then mkdir ~/powershell && cd ~/powershell; fi
+			yum install -y powershell && echo "alias pwsh=powershell" >> ~/.bash_profile
+			source ~/.bash_profile
+			;;
+		2)	echo "installing vagrant"
+			yum -y install gcc dkms make qt libgomp patch 
+			yum -y install kernel-headers kernel-devel binutils glibc-headers glibc-devel font-forge
+			cd /etc/yum.repo.d/ && wget http://download.virtualbox.org/virtualbox/rpm/rhel/virtualbox.repo
+			yum install -y VirtualBox-5.1
+			/sbin/rcvboxdrv setup
+			yum -y install https://releases.hashicorp.com/vagrant/1.9.6/vagrant_1.9.6_x86_64.rpm
+			mkdir ~/vagrant-home && cd ~/vagrant-home
+			echo "Vagrant instructions 
+				# vagrant halt     [shutdown server]
+				# vagrant up       [start server]
+				# vagrant destroy  [delete server]"
+			sleep 4
+			echo -n "Do you want to install ubuntu? or Do you want to install centOS? Anse"
+			read -r YESUC
+			if [[ $YESUC =~ ^c|C(entos)?$ ]]; then
+				vagrant init ubuntu/xenial164
+			elif [[ $YESUC =~ ^u|U(buntu)?$ ]]; then
+				vagrant init centos/7
+			fi
+			;;
+		3) echo "installing byobu"
+			yum install byobu -y
+			;;
+		4) echo "installing AWSCLI"
+		awstin(){
+		if [[ ! $(which python) ]]; then yum install python -y; fi
+		echo "your python version: $(python --version)"
+		if [[ ! -d ~/pip ]]; then mkdir ~/pip && cd ~/pip && curl -O https://bootstrap.pypa.io/get-pip.py; else cd ~/pip && curl -O https://bootstrap.pypa.io/get-pip.py; fi && python ~/pip/get-pip.py --user && export PATH=~/.local/bin:$PATH && echo "export PATH=~/.local/bin:$PATH" >> ~/.bash_profile
+		pip --version
+		echo "your python verion: $(pip --version)"
+		pip install awscli --upgrade --user
+		echo "your python verion: $(aws --version)"
+		}
+		echo -n "Do you want an isolated AWSCLI env or nah, note; if yes we will run this a docker environment keeping your keys safe if you get compromized, not convinient however because you would have to do your volume mountings and whatnot, if no then we just install AWSCLI on your host machine and you just have to keep it safe. The goal is to protect your AWS pragmatic or whateva access keys"
+		echo -n "yes for (install in isolated env:docker) no or wrong anwser for (just install anywhere fam u stressin)(yes/no): "
+		sleep 3
+		echo
+		read -r -p "(yes/no): " ANZ
+		if [[ $ANZ =~ ^y(es)?$ ]]; then
+			docker run --privileged -dit -v /$USER/dockerstuff:/$USER --name awscli centos
+			lol=`type awstin | sed '1d;2d;3d;$d;s/--user//;s/pip install awscli --upgrade .*/pip install awscli --upgrade --ignore-installed six/'`
+			docker exec -ti awscli /bin/bash -c  "$lol"
+			docker commit awscli
+			echo "docker start awscli" >> /etc/rc.local
+		else	
+			awstin
+			yum install python-setuptools -y
+			if [[ ! `type pip` ]]; then python ~/pip/get-pip.py --user ; export PATH=~/.local/bin:$PATH ; echo "export PATH=~/.local/bin:$PATH" >> ~/.bash_profile; fi
+			if [[ ! `type aws` ]]; then pip install awscli --upgrade --user; fi
+		fi
+		echo "Make sure to get your keys, configure aws with aws configure"
+		;;
+	5) echo "Bruh are you sure, this will consume alot of resources"
+	##comin soon, least of priorities
+		;;
+	6)	echo "installing FTP server and maybe phpmyadmin (courtesy of howtoforge)"
+		echo
+		read -p "Do you want to install this in a docker container? (yes/no): " DOCQ
+			ftptin(){
+				echo
+				read -p "Do you want to install phpmyadmin(yes) or 'cmd line or go home'(no)? " PHPQ
+				phpmytin(){
+				if [[ $PHPQ =~ y|Y(es)$? ]]; then
+					read -p "Please type the IP to allow phpmyadmin from(only local for security reasons) ie 192.168.0.1 or 192.18.0.0/16: " IPQUE
+					echo
+					read -p "Please describe the phpmyadmin url you want: ie 127.0.0.1/phphide: " URLQ
+					yum -y install yum-priorities
+					yum update -y
+					yum install mariadb mariadb-server phpmyadmin httpd php -y
+				else
+					yum -y install yum-priorities
+					yum update
+					yum install mariadb mariadb-server phpmyadmin httpd php -y
+				fi
+				}
+				phpmytin
+				echo "your IP is $IPQUE your prefered url is $URLQ "
+				read -p "Did you make a typo?(yes/no): " TYPQ 
+
+				
+				if [[ $TYPQ =~ y|Y(es)$? ]]; then
+					phpmytin
+				fi
+				if [[ $IPQUE = */* ]]; then
+					sed -i 's|Require ip 127.0.0.1|Require ip '"$IPQUE"'| ; s|Alias /phpmyadmin|Alias /'"$URLQ"'| ; s|Alias /phpMyAdmin|#Alias /phpMyAdmin|' /etc/httpd/conf.d/phpMyAdmin.conf;
+					else
+						sed -i "s/^Require ip 127.0.0.1/Require ip $IPQUE/ ; s/^Alias /phpmyadmin/Alias /$URLQ/ ; s/^Alias \/phpMyAdmin/#Alias \/phpMyAdmin/" /etc/httpd/conf.d/phpMyAdmin.conf
+				fi
+				
+
+				ftpinfo(){
+				yum install pure-ftpd -y
+				echo "So i will give it a database username of pureftpd \n " 
+				read -p "what ftp group would you like to name it: " FTPG 
+				echo
+				read -p "what ftp user would you like to name it: " FTPUS
+				echo
+				read -p "what ftp uid and gid would you like to name it: (ie 2005): " FTPU
+				echo
+				read -p "what database username would you want: " FDBU
+				echo
+				read  -s -p "what database password would you want: " FDBP
+				echo
+			}
+				ftpinfo
+				echo "your ftp group is $FTPG your ftp user is $FTPUS your gid and uid is $FTPU your ftp databaseuser is $FDBU your database pwd is hidden  "
+				read -p "Did you make a typo?(yes/no): " TYPQ 
+				
+				if [[ $TYPQ =~ y|Y(es)$? ]]; then
+					ftpinfo
+				fi
+				
+				groupadd -g $FTPU $FTPG
+				useradd -u $FTPU -s /bin/false -d /bin/null -c "pureftpd user" -g $FTPG $FTPU
+				firewall-cmd --permanent --zone=public --add-service=ftp
+				firewall-cmd --reload
+				mysql -u root -e "CREATE DATABASE pureftpd;
+							GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP ON pureftpd.* TO '$FDBU'@'localhost' IDENTIFIED BY '$FDBP';
+							GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP ON pureftpd.* TO '$FDBU'@'localhost.localdomain' IDENTIFIED BY '$FDBP';
+							FLUSH PRIVILEGES;"
+				mysql -u root -e "USE pureftpd;
+							CREATE TABLE ftpd (
+							User varchar(16) NOT NULL default '',
+							status enum('0','1') NOT NULL default '0',
+							Password varchar(64) NOT NULL default '',
+							Uid varchar(11) NOT NULL default '-1',
+							Gid varchar(11) NOT NULL default '-1',
+							Dir varchar(128) NOT NULL default '',
+							ULBandwidth smallint(5) NOT NULL default '0',
+							DLBandwidth smallint(5) NOT NULL default '0',
+							comment tinytext NOT NULL,
+							ipaccess varchar(15) NOT NULL default '*',
+							QuotaSize smallint(5) NOT NULL default '0',
+							QuotaFiles int(11) NOT NULL default 0,
+							PRIMARY KEY (User),
+							UNIQUE KEY User (User)
+							) ENGINE=MyISAM;"
+
+					sed -i "s/^#MySQLConfigFile/MySQLConfigFile/ ; s/^#CreateHomeDir/CreateHomeDir/" /etc/pure-ftpd/pure-ftpd.conf
+
+					cp /etc/pure-ftpd/pureftpd-mysql.conf /etc/pure-ftpd/pureftpd-mysql.conf_orig
+						cat /dev/null > /etc/pure-ftpd/pureftpd-mysql.conf
+						echo 'MYSQLSocket      /var/lib/mysql/mysql.sock
+#MYSQLServer     localhost
+#MYSQLPort       3306
+MYSQLUser       $FDBU
+MYSQLPassword   $FDBP
+MYSQLDatabase   pureftpd
+#MYSQLCrypt md5, cleartext, crypt() or password() - md5 is VERY RECOMMENDABLE uppon cleartext
+MYSQLCrypt      md5
+MYSQLGetPW      SELECT Password FROM ftpd WHERE User="\L" AND status="1" AND (ipaccess = "*" OR ipaccess LIKE "\R")
+MYSQLGetUID     SELECT Uid FROM ftpd WHERE User="\L" AND status="1" AND (ipaccess = "*" OR ipaccess LIKE "\R")
+MYSQLGetGID     SELECT Gid FROM ftpd WHERE User="\L"AND status="1" AND (ipaccess = "*" OR ipaccess LIKE "\R")
+MYSQLGetDir     SELECT Dir FROM ftpd WHERE User="\L"AND status="1" AND (ipaccess = "*" OR ipaccess LIKE "\R")
+MySQLGetBandwidthUL SELECT ULBandwidth FROM ftpd WHERE User="\L"AND status="1" AND (ipaccess = "*" OR ipaccess LIKE "\R")
+MySQLGetBandwidthDL SELECT DLBandwidth FROM ftpd WHERE User="\L"AND status="1" AND (ipaccess = "*" OR ipaccess LIKE "\R")
+MySQLGetQTASZ   SELECT QuotaSize FROM ftpd WHERE User="\L"AND status="1" AND (ipaccess = "*" OR ipaccess LIKE "\R")
+MySQLGetQTAFS   SELECT QuotaFiles FROM ftpd WHERE User="\L"AND status="1" AND (ipaccess = "*" OR ipaccess LIKE "\R")' > /etc/pure-ftpd/pureftpd-mysql.conf
+
+service httpd restart
+systemctl enable pure-ftpd.service
+systemctl enable pure-ftpd.service
+			}
+
+			if [[ $DOCQ =~ y|Y(es)$? ]]; then
+				read -p -r "What php port: " PHPP
+				mkdir -p /home/ftpserverdir
+				docker run --privileged -dit -v /home/ftpserverdir:/$USER -p $PHPP:80 --name ftpserver centos
+				docker start ftpserver
+				loli=`type ftptin | sed '{//g;}//g;s/ftptin()//;s/ftptin//;s|ftpinfo()||;s/ftpinfo//;s|phpmytin()||;s/phpmytin//'`
+				docker exec -ti awscli /bin/bash -c  "$loli"
+				docker exec -ti awscli /bin/bash -c  "yum update -y"
+				docker commit ftpserver
+				echo "docker start ftpserver" >> /etc/rc.local
+			else
+				ftptin
+			fi
+			
+		
+		;;
+	8)	echo "Setting up HTTPS with Let's Encrypt"
+		read -r -p "Enter you domain name: " $DOM
+		yum install httpd mod_ssl python-certbot-apache -y
+		service restart httpd
+		certbot --apache -d $DOM
+		if [[ ! $(echo $?) == 0 ]]
+				echo "Make sure you have your firewall enabled for 80and443"
+				sleep 5
+				read -p "Press anything to continue: "
+				certbot --apache -d $DOM || certbot -i apache -a webroot -w /var/www/html -d $DOM
+		;;
+	b) 
+		echo "See ya"
+		break
+		;;
+
+    *)	echo "scuuz me ?"
+		;;	
+	esac
+done
+echo
+
+
+
+
+
+
+
+
+
+
