@@ -14,7 +14,9 @@ debugtin(){
 	echo
 	echo "************************************************************************************************************"
 	echo "there is a debug file now in your current directory  $(pwd), you can tail -f debug.txt to see in real time"
+	echo "please run as root, you are $(whoami) i didnt plan for otherwise, there is alot of bugs in this script"
 	echo "************************************************************************************************************"
+	sleep 4
 	echo
 }
 debugtin
@@ -73,6 +75,9 @@ else
 		echo GATEWAY="$GATEWAY" >> $BRUH
 		echo PREFIX="$PREF" >> $BRUH
 		sed -i 's/^BOOTPROTO="dhcp"/BOOTPROTO="static"/' $BRUH
+		echo "Verify your /etc/sysconfig/network-scripts/ifcfg-eth0"
+		sleep 2
+		vi +"se nu" /etc/sysconfig/network-scripts/ifcfg-eth0
 	fi
 
 	test -f /etc/sysconfig/network-scripts/ifcfg-eth0 && cp /etc/sysconfig/network-scripts/ifcfg-eth0 /etc/sysconfig/network-scripts/ifcfg-eth0.bak && sed -i "s/^GATEWAY=.*/GATEWAY=$GATEWAY/;s/^DNS2=.*/DNS2=$GATEWAY/;s/^IPADDR=.*/IPADDR=$IPADDR/" /etc/sysconfig/network-scripts/ifcfg-eth0 || echo "ERROR SOMEWHERE" && sleep 10
@@ -88,12 +93,21 @@ service network restart
 ##if to set up network or nah
 if [[ $FQUES =~ ^y|Y(es)$? ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
 	read -p "enter your ip: " IPADDR 
+	if [[ `ping  -c 4 -q $IPADDR` ]]; then
+		echo "Just so you know, there is a IP conflict"
+		until [[ $KK =~ y|Y(es)$? ]] || [[ ! `ping  -c 4 -q $IPADDR` ]]; do
+			read -p "enter your ip: " IPADDR 
+			echo
+			read -r -p "Have you resolved the conflict?(yes/no): " KK  
+		done
 	echo
 	read -p "enter your gateway: " GATEWAY 
 	echo
 	read -p "enter your prefix (ie 16): " PREF 
 	echo
 	netwokbro
+
+fi
 fi
 
 yum update -y
@@ -311,7 +325,7 @@ while true; do
 		;;
 	6)	echo "installing FTP server and maybe phpmyadmin (courtesy of howtoforge)"
 		echo
-		read -p "Do you want to install this in a docker container? (yes/no): " DOCQ
+		#read -p "Do you want to install this in a docker container? (yes/no): " DOCQ
 			ftptin(){
 				echo
 				read -p "Do you want to install phpmyadmin(yes) or 'cmd line or go home'(no)? " PHPQ
@@ -418,14 +432,16 @@ systemctl enable pure-ftpd.service
 systemctl enable pure-ftpd.service
 			}
 
+###This is pretty much from my bad function'sstructure
 			if [[ $DOCQ =~ y|Y(es)$? ]]; then
 				read -p -r "What php port: " PHPP
 				mkdir -p /home/ftpserverdir
 				docker run --privileged -dit -v /home/ftpserverdir:/$USER -p $PHPP:80 --name ftpserver centos
 				docker start ftpserver
-				loli=`type ftptin | sed '{//g;}//g;s/ftptin()//;s/ftptin//;s|ftpinfo()||;s/ftpinfo//;s|phpmytin()||;s/phpmytin//'`
-				docker exec -ti awscli /bin/bash -c  "$loli"
 				docker exec -ti awscli /bin/bash -c  "yum update -y"
+				loli=`type ftptin | sed '1d;2d;3d;s|.*function.*().*||g;s/{//g;s/}//g;s/ftptin()//;s/ftptin//;s|ftpinfo()||;s/ftpinfo//;s|phpmytin()||;s/phpmytin//'`
+				docker exec -ti awscli /bin/bash -c  "$loli"
+				
 				docker commit ftpserver
 				echo "docker start ftpserver" >> /etc/rc.local
 			else
@@ -434,16 +450,21 @@ systemctl enable pure-ftpd.service
 			
 		
 		;;
+
+	7) 	echo "Cron to setup MySQL backups"
+		##coming soon
+		;;
 	8)	echo "Setting up HTTPS with Let's Encrypt"
 		read -r -p "Enter you domain name: " $DOM
 		yum install httpd mod_ssl python-certbot-apache -y
 		service restart httpd
 		certbot --apache -d $DOM
-		if [[ ! $(echo $?) == 0 ]]
+		if [[ ! $(echo $?) == 0 ]]; then
 				echo "Make sure you have your firewall enabled for 80and443"
 				sleep 5
 				read -p "Press anything to continue: "
-				certbot --apache -d $DOM || certbot -i apache -a webroot -w /var/www/html -d $DOM
+				certbot --apache -d $DOM || certbot -i apache -a webroot -w /var/www/html -d $DOM || echo "Sometin wong"
+		fi
 		;;
 	b) 
 		echo "See ya"
