@@ -485,7 +485,7 @@ systemctl enable pure-ftpd.service
 		until [[ ! -z $GIWG ]] || [[ ! $GIWG =~ y|Y(es)$ ]]; do
 			echo "I noticed you did not type anything, if you want to cancel just type yes"
 			echo -n "do you want to get your files from an online file or repository "
-			read -r -p "type in the address of where location(currently supports wget or git html://y.i): " GIWG
+			read -r -p "type in the address of where location(currently supports wget or git clone html://y.i): " GIWG
 		done
 		echo -n "Cool so enter a destination directory"
 		read -p "you know your paths? ie /var/www/html/, if root of html is your dest type html (as is), otherwise type full path: " PATHO
@@ -508,11 +508,13 @@ systemctl enable pure-ftpd.service
 		fi
 
 		if [[ $GIWG =~ w|W(get|GET)$ ]]; then
-			GIWG1=`echo $GIWG | sed s/*.http//`
-			wget $GIWG1 --directory-prefix=$PATHO
+			#GIWG1=`echo $GIWG | sed s/*.http//`
+			#wget $GIWG1 --directory-prefix=$PATHO
+			$GIWG --directory-prefix=$PATHO
 		elif [[ $GIWG =~ g|G(it|IT)$ ]]; then
-			GIWG1=`echo $GIWG | sed s/^http//`
-			git clone $GIWG $PATHO 
+			#GIWG1=`echo $GIWG | sed s/^http//`
+			GIWG=`echo $GIWG | sed s/^http//`
+			$GIWG $PATHO 
 		fi
 		;;
 	b) 
