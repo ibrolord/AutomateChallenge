@@ -44,7 +44,7 @@ infotin
 echo
 ##vheck for typo
 read -p "Did you make a typo?(yes/no): " TYPQ 
-if [[ $TYPQ =~ y|Y(es)$? ]]; then
+if [[ $TYPQ =~ y|Y(es)$ ]]; then
 	infotin
 fi
 ##function to config network
@@ -255,6 +255,7 @@ while true; do
 	echo "6) installs FTP server"
 	echo "7) setup periodic mysql backup"
 	echo "8) setup HTTPS with Let's Encrypt"
+	echo "9) GET or clone a repository"
 	echo "b) bye"
 	echo
 	read WATSITGONBE
@@ -263,7 +264,7 @@ while true; do
 		1)	echo "installing powershell"
 			curl https://packages.microsoft.com/config/rhel/7/prod.repo | sudo tee /etc/yum.repos.d/microsoft.repo
 
-			if [[ -d ~/powershell ]]; then mkdir ~/powershell && cd ~/powershell; fi
+			#if [[ ! -d ~/powershell ]]; then mkdir ~/powershell && cd ~/powershell; fi
 			yum install -y powershell && echo "alias pwsh=powershell" >> ~/.bash_profile
 			source ~/.bash_profile
 			;;
@@ -280,13 +281,17 @@ while true; do
 				# vagrant up       [start server]
 				# vagrant destroy  [delete server]"
 			sleep 4
-			echo -n "Do you want to install ubuntu? or Do you want to install centOS? Anse"
+			echo -n "Do you want to install ubuntu? or Do you want to install centOS?(type the distro): "
 			read -r YESUC
-			if [[ $YESUC =~ ^c|C(entos)?$ ]]; then
-				vagrant init ubuntu/xenial164
-			elif [[ $YESUC =~ ^u|U(buntu)?$ ]]; then
-				vagrant init centos/7
-			fi
+			until [[ ! -z $YESUC ]] ||  [[ $YESUC =~ ^c|C(entos)$ ]] ||  [[ $YESUC =~ ^u|U(buntu)$ ]]; do
+				if [[ $YESUC =~ ^c|C(entos)$ ]]; then
+						vagrant init centos/7 
+				elif [[ $YESUC =~ ^u|U(buntu)$ ]]; then
+						vagrant init ubuntu/xenial164
+				fi
+				read -r YESUC
+			done
+			
 			;;
 		3) echo "installing byobu"
 			yum install byobu -y
@@ -306,7 +311,7 @@ while true; do
 		sleep 3
 		echo
 		read -r -p "(yes/no): " ANZ
-		if [[ $ANZ =~ ^y(es)?$ ]]; then
+		if [[ $ANZ =~ ^y(es)$ ]]; then
 			docker run --privileged -dit -v /$USER/dockerstuff:/$USER --name awscli centos
 			lol=`type awstin | sed '1d;2d;3d;$d;s/--user//;s/pip install awscli --upgrade .*/pip install awscli --upgrade --ignore-installed six/'`
 			docker exec -ti awscli /bin/bash -c  "$lol"
@@ -330,10 +335,15 @@ while true; do
 				echo
 				read -p "Do you want to install phpmyadmin(yes) or 'cmd line or go home'(no)? " PHPQ
 				phpmytin(){
-				if [[ $PHPQ =~ y|Y(es)$? ]]; then
-					read -p "Please type the IP to allow phpmyadmin from(only local for security reasons) ie 192.168.0.1 or 192.18.0.0/16: " IPQUE
+				if [[ $PHPQ =~ y|Y(es)$ ]]; then
+					
 					echo
-					read -p "Please describe the phpmyadmin url you want: ie 127.0.0.1/phphide: " URLQ
+					until [[ ! -z $IPQUE ]] && [[ ! -z $URLQ ]]; do
+						read -p "Please describe the phpmyadmin url you want: ie 127.0.0.1/phphide: " URLQ
+						echo
+						read -p "Please type the IP to allow phpmyadmin from(only local for security reasons) ie 192.168.0.1 or 192.18.0.0/16: " IPQUE
+					done
+					
 					yum -y install yum-priorities
 					yum update -y
 					yum install mariadb mariadb-server phpmyadmin httpd php -y
@@ -348,7 +358,7 @@ while true; do
 				read -p "Did you make a typo?(yes/no): " TYPQ 
 
 				
-				if [[ $TYPQ =~ y|Y(es)$? ]]; then
+				if [[ $TYPQ =~ y|Y(es)$ ]]; then
 					phpmytin
 				fi
 				if [[ $IPQUE = */* ]]; then
@@ -376,7 +386,7 @@ while true; do
 				echo "your ftp group is $FTPG your ftp user is $FTPUS your gid and uid is $FTPU your ftp databaseuser is $FDBU your database pwd is hidden  "
 				read -p "Did you make a typo?(yes/no): " TYPQ 
 				
-				if [[ $TYPQ =~ y|Y(es)$? ]]; then
+				if [[ $TYPQ =~ y|Y(es)$ ]]; then
 					ftpinfo
 				fi
 				
@@ -433,7 +443,7 @@ systemctl enable pure-ftpd.service
 			}
 
 ###This is pretty much from my bad function'sstructure
-			if [[ $DOCQ =~ y|Y(es)$? ]]; then
+			if [[ $DOCQ =~ y|Y(es)$ ]]; then
 				read -p -r "What php port: " PHPP
 				mkdir -p /home/ftpserverdir
 				docker run --privileged -dit -v /home/ftpserverdir:/$USER -p $PHPP:80 --name ftpserver centos
@@ -464,6 +474,45 @@ systemctl enable pure-ftpd.service
 				sleep 5
 				read -p "Press anything to continue: "
 				certbot --apache -d $DOM || certbot -i apache -a webroot -w /var/www/html -d $DOM || echo "Sometin wong"
+		fi
+		;;
+
+		##SO UNNECCESSARY
+	9)	echo "do you want to get your files from an online file or repository "
+		infobr(){
+		yum install git wget -y
+		read -r -p "type in the address of where location(currently supports wget or git pull html://dssd.com): " GIWG
+		until [[ ! -z $GIWG ]] || [[ ! $GIWG =~ y|Y(es)$ ]]; do
+			echo "I noticed you did not type anything, if you want to cancel just type yes"
+			echo -n "do you want to get your files from an online file or repository "
+			read -r -p "type in the address of where location(currently supports wget or git html://y.i): " GIWG
+		done
+		echo -n "Cool so enter a destination directory"
+		read -p "you know your paths? ie /var/www/html/, if root of html is your dest type html (as is), otherwise type full path: " PATHO
+		if [[ ! -d $PATHO ]]; then
+			mkdir $PATHO
+		fi
+
+		}
+		infobr
+		echo "Your path is $PATHO your requst is $GIWG"
+		read -r -p "Did you make a typo?(yes/no): " IBERE
+		if [[ $IBERE =~ y|Y(es)$ ]]; then
+			until [[ $CON =~ y|Y(es)$ ]]; do
+			infobr
+			read -r -p "Are you ok?(yes/no): " CON	
+			done
+		fi
+		if [[ $PATHO =~ html ]]; then
+			PATHO="/var/www/html/"
+		fi
+
+		if [[ $GIWG =~ w|W(get|GET)$ ]]; then
+			GIWG1=`echo $GIWG | sed s/*.http//`
+			wget $GIWG1 --directory-prefix=$PATHO
+		elif [[ $GIWG =~ g|G(it|IT)$ ]]; then
+			GIWG1=`echo $GIWG | sed s/^http//`
+			git clone $GIWG $PATHO 
 		fi
 		;;
 	b) 
