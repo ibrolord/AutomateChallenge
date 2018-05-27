@@ -93,9 +93,10 @@ service network restart
 ##if to set up network or nah
 if [[ $FQUES =~ ^y|Y(es)$? ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
 	read -p "enter your ip: " IPADDR 
-	if [[ `ping  -c 4 -q $IPADDR` ]]; then
-		echo "Just so you know, there is a IP conflict"
+	
 		until [[ $KK =~ y|Y(es)$? ]] || [[ ! `ping  -c 4 -q $IPADDR` ]]; do
+			if [[ `ping  -c 4 -q $IPADDR` ]]; then
+			echo "Just so you know, there is a IP conflict"
 			read -p "enter your ip: " IPADDR 
 			echo
 			read -r -p "Have you resolved the conflict?(yes/no): " KK  
