@@ -487,7 +487,7 @@ systemctl enable pure-ftpd.service
 	9)	
 		read -r -p "Should I do the usual?(copy all to the directory and stuff: only me understands):(yes/no): " DO
 		if [[ $DO =~ y|Y(es)?$ ]]; then
-			git clone https://github.com/ibrolord/lazyfiles/tree/master/web /var/www/html 
+			git clone https://github.com/ibrolord/lazyfiles.git /var/www/html 
 			chmod -R 755 /var/www/html
 			chown -R apache:apache /var/www/html
 			cd /var/www/html
