@@ -91,16 +91,20 @@ service network restart
 }
 
 ##if to set up network or nah
-if [[ $FQUES =~ ^y|Y(es)$? ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
+if [[ $FQUES =~ ^y|Y(es)?$ ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
 	read -p "enter your ip: " IPADDR 
-	
-		until [[ $KK =~ y|Y(es)$? ]] || [[ ! `ping  -c 4 -q $IPADDR` ]]; do
-			if [[ `ping  -c 4 -q $IPADDR` ]]; then
-			echo "Just so you know, there is a IP conflict"
+	if [[ ! `ping  -c 4 $IPADDR | egrep "fail|reach" 2>/dev/null` ]]; then
+		echo "Just so you know, there is a IP conflict"
+	fi
+		until [[ $KK =~ y|Y(es)?$ ]] || [[ ! `ping  -c 4 -q $IPADDR` ]]; do
+			
+			if [[ ! `ping  -c 4 $IPADDR | egrep "fail|reach" 2>/dev/null` ]]; then
+				echo "Just so you know, there is a IP conflict"
 			fi
-			read -p "enter your ip: " IPADDR 
-			echo
+			
 			read -r -p "Have you resolved the conflict?(yes/no): " KK  
+			echo
+			read -p "enter your ip: " IPADDR 
 		done
 	echo
 	read -p "enter your gateway: " GATEWAY 
@@ -486,6 +490,10 @@ systemctl enable pure-ftpd.service
 			git clone https://github.com/ibrolord/lazyfiles/tree/master/web /var/www/html 
 			chmod -R 755 /var/www/html
 			chown -R apache:apache /var/www/html
+			cd /var/www/html
+			git init 
+			git add .
+			git commit
 		else
 					echo "do you want to get your files from an online file or repository "
 					infobr(){
