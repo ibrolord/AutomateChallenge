@@ -114,7 +114,7 @@ if [[ $FQUES =~ ^y|Y(es)?$ ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
 	netwokbro
 
 fi
-fi
+
 
 yum update -y
 
