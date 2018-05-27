@@ -91,11 +91,11 @@ service network restart
 }
 
 ##if to set up network or nah
-if [[ $FQUES =~ ^y|Y(es)$ ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
+if [[ $FQUES =~ ^y|Y(es)$? ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
 	read -p "enter your ip: " IPADDR 
 	if [[ `ping  -c 4 -q $IPADDR` ]]; then
 		echo "Just so you know, there is a IP conflict"
-		until [[ $KK =~ y|Y(es)$ ]] || [[ ! `ping  -c 4 -q $IPADDR` ]]; do
+		until [[ $KK =~ y|Y(es)$? ]] || [[ ! `ping  -c 4 -q $IPADDR` ]]; do
 			read -p "enter your ip: " IPADDR 
 			echo
 			read -r -p "Have you resolved the conflict?(yes/no): " KK  
@@ -135,7 +135,7 @@ fi
 }
 
 ##test the question I asked before
-if [[ $QXEN =~ y|Y(es)$ ]]; then
+if [[ $QXEN =~ y|Y(es)$? ]]; then
 	xentin
 fi
 
@@ -478,44 +478,53 @@ systemctl enable pure-ftpd.service
 		;;
 
 		##SO UNNECCESSARY
-	9)	echo "do you want to get your files from an online file or repository "
-		infobr(){
-		yum install git wget -y
-		read -r -p "type in the address of where location(currently supports wget or git pull html://dssd.com): " GIWG
-		until [[ ! -z $GIWG ]] || [[ ! $GIWG =~ y|Y(es)$ ]]; do
-			echo "I noticed you did not type anything, if you want to cancel just type yes"
-			echo -n "do you want to get your files from an online file or repository "
-			read -r -p "type in the address of where location(currently supports wget or git clone html://y.i): " GIWG
-		done
-		echo -n "Cool so enter a destination directory"
-		read -p "you know your paths? ie /var/www/html/, if root of html is your dest type html (as is), otherwise type full path: " PATHO
-		if [[ ! -d $PATHO ]]; then
-			mkdir $PATHO
-		fi
+	9)	
+		read -r -p "Should I do the usual?(copy all to the directory and stuff: only me understands):(yes/no): " DO
+		if [[ $DO =~ y|Y(es)?$ ]]; then
+			git clone https://github.com/ibrolord/lazyfiles/tree/master/web /var/www/html 
+			chmod -R 755 /var/www/html
+			chown -R apache:apache /var/www/html
+		else
+					echo "do you want to get your files from an online file or repository "
+					infobr(){
+					yum install git wget -y
+					read -r -p "type in the address of where location(currently supports wget or git pull html://dssd.com): " GIWG
+					until [[ ! -z $GIWG ]] || [[ ! $GIWG =~ y|Y(es)$ ]]; do
+						echo "I noticed you did not type anything, if you want to cancel just type yes"
+						echo -n "do you want to get your files from an online file or repository "
+						read -r -p "type in the address of where location(currently supports wget or git clone html://y.i): " GIWG
+					done
+					echo -n "Cool so enter a destination directory"
+					read -p "you know your paths? ie /var/www/html/, if root of html is your dest type html (as is), otherwise type full path: " PATHO
+					if [[ ! -d $PATHO ]]; then
+						mkdir $PATHO
+					fi
 
-		}
-		infobr
-		echo "Your path is $PATHO your requst is $GIWG"
-		read -r -p "Did you make a typo?(yes/no): " IBERE
-		if [[ $IBERE =~ y|Y(es)$ ]]; then
-			until [[ $CON =~ y|Y(es)$ ]]; do
-			infobr
-			read -r -p "Are you ok?(yes/no): " CON	
-			done
-		fi
-		if [[ $PATHO =~ html ]]; then
-			PATHO="/var/www/html/"
-		fi
+					}
+					infobr
+					echo "Your path is $PATHO your requst is $GIWG"
+					read -r -p "Did you make a typo?(yes/no): " IBERE
+					if [[ $IBERE =~ y|Y(es)$ ]]; then
+						until [[ $CON =~ y|Y(es)$ ]]; do
+						infobr
+						read -r -p "Are you ok?(yes/no): " CON	
+						done
+					fi
+					if [[ $PATHO =~ html ]]; then
+						PATHO="/var/www/html/"
+					fi
 
-		if [[ $GIWG =~ w|W(get|GET)$ ]]; then
-			#GIWG1=`echo $GIWG | sed s/*.http//`
-			#wget $GIWG1 --directory-prefix=$PATHO
-			$GIWG --directory-prefix=$PATHO
-		elif [[ $GIWG =~ g|G(it|IT)$ ]]; then
-			#GIWG1=`echo $GIWG | sed s/^http//`
-			GIWG=`echo $GIWG | sed s/^http//`
-			$GIWG $PATHO 
-		fi
+					if [[ $GIWG =~ w|W(get|GET)$ ]]; then
+						#GIWG1=`echo $GIWG | sed s/*.http//`
+						#wget $GIWG1 --directory-prefix=$PATHO
+						$GIWG --directory-prefix=$PATHO
+					elif [[ $GIWG =~ g|G(it|IT)$ ]]; then
+						#GIWG1=`echo $GIWG | sed s/^http//`
+						GIWG=`echo $GIWG | sed s/^http//`
+						$GIWG $PATHO 
+					fi
+			fi
+		
 		;;
 	b) 
 		echo "See ya"
