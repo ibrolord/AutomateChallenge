@@ -95,7 +95,7 @@ if [[ $FQUES =~ ^y|Y(es)?$ ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
 	read -p "enter your ip: " IPADDR 
 	if [[ ! `ping  -c 4 $IPADDR | egrep "fail|reach" 2>/dev/null` ]]; then
 		echo "Just so you know, there is a IP conflict"
-	fi
+	
 		until [[ $KK =~ y|Y(es)?$ ]] || [[ ! `ping  -c 4 -q $IPADDR` ]]; do
 			read -p "enter your ip: " IPADDR 	
 			if [[ ! `ping  -c 4 $IPADDR | egrep "fail|reach" 2>/dev/null` ]]; then
@@ -103,9 +103,9 @@ if [[ $FQUES =~ ^y|Y(es)?$ ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
 			fi
 			
 			read -r -p "Have you resolved the conflict?(yes/no): " KK  
-			echo
-			
+			echo		
 		done
+	fi	
 	echo
 	read -p "enter your gateway: " GATEWAY 
 	echo
@@ -487,12 +487,14 @@ systemctl enable pure-ftpd.service
 	9)	
 		read -r -p "Should I do the usual?(copy all to the directory and stuff: only me understands):(yes/no): " DO
 		if [[ $DO =~ y|Y(es)?$ ]]; then
-			git clone https://github.com/ibrolord/lazyfiles.git /var/www/html 
+			git clone https://github.com/ibrolord/lazyfiles.git /var/www/html/ 
 			chmod -R 755 /var/www/html
 			chown -R apache:apache /var/www/html
 			cd /var/www/html
+			git clone https://github.com/ibrolord/lazyfiles.git /var/www/html/ 
 			git init 
 			git add .
+		#cp -Rfn /var/www/html/lazyfiles/web/* /var/www/html/
 			
 		else
 					echo "do you want to get your files from an online file or repository "
