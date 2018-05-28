@@ -493,7 +493,7 @@ systemctl enable pure-ftpd.service
 			cd /var/www/html
 			git init 
 			git add .
-			git commit
+			
 		else
 					echo "do you want to get your files from an online file or repository "
 					infobr(){
@@ -546,13 +546,5 @@ systemctl enable pure-ftpd.service
 	esac
 done
 echo
-
-
-
-
-
-
-
-
 
 
