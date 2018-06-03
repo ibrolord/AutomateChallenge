@@ -191,6 +191,19 @@ ufw reload ;
 exit
 "
 
+
+##commnds for docker
+BAST="apt update ; 
+apt upgrade -y ; 
+apt install ssh -y ; 
+service ssh restart ;
+sed -i s/^#Port.*/Port $PSSH/ /etc/ssh/sshd_config ;
+useradd -m $SSHUSER ;
+echo -e "'$SSHPWD\n$SSHPWD'" | passwd $SSHUSER ;
+
+exit
+"
+
 ##I would rather sync in isolated than give access
 ##set firewall
 firewall-cmd --zone=public --permanent --add-port=$PSSH/tcp
