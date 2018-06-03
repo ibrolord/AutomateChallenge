@@ -168,9 +168,21 @@ chkconfig lsyncd on
 mkdir /$USER/dockerstuff && chmod -R 775 /$USER/dockerstuff
 mkdir /$USER/websitestuff && chmod -R 775 /$USER/websitestuff
 
+
+##commnds for docker
+BAST="apt update ;
+apt upgrade -y ;
+apt install ssh -y ;
+service ssh restart ;
+sed -i 's/^#Port.*/Port $PSSH/' /etc/ssh/sshd_config ;
+useradd -m $SSHUSER ;
+echo -e '$SSHPWD\n$SSHPWD' | passwd $SSHUSER ;
+exit
+"
+
 ##run docker with the ports specified
 docker run  -it -d -p $PSSH:$PSSH --name Bastion ubuntu /bin/bash
-#docker exec -ti Bastion /bin/bash -c "apt update ; apt upgrade -y ; apt install ufw -y ; ufw enable ; ufw allow 789789 "
+docker exec -ti Bastion /bin/bash -c "$BAST"
 
 ##commnds for docker
 NODES="exec 5> $USER/debug.txt ;
@@ -188,19 +200,6 @@ ufw enable ;
 ufw allow $PBRA ;
 service ufw restart ;
 ufw reload ;
-exit
-"
-
-
-##commnds for docker
-BAST="apt update ; 
-apt upgrade -y ; 
-apt install ssh -y ; 
-service ssh restart ;
-sed -i s/^#Port.*/Port $PSSH/ /etc/ssh/sshd_config ;
-useradd -m $SSHUSER ;
-echo -e "'$SSHPWD\n$SSHPWD'" | passwd $SSHUSER ;
-
 exit
 "
 
