@@ -1,4 +1,5 @@
 #!/bin/bash
+###Plans to refactor entire code using Ansible after discovering more efficeient methods. Plans in the long future, lazylife.tech deploys well off this I guess
 echo "################################################################"
 echo "So you have messed your server again"
 echo "################################################################"
