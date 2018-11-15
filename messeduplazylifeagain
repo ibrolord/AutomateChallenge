@@ -64,7 +64,7 @@ if [[ ! -f /etc/sysconfig/network-scripts/ifcfg-eth0 ]]; then
 	vi +'se nu' /etc/sysconfig/network-scripts/$IPFILE
 
 else
-
+	###nmcli next time
 	NETF=`grep 'BOOTPROTO="dhcp"' /etc/sysconfig/network-scripts/ifcfg-eth0`
 	BRUH=/etc/sysconfig/network-scripts/ifcfg-eth0
 	if [[ $NETF ]]; then
@@ -91,6 +91,8 @@ service network restart
 
 }
 
+
+##
 ##if to set up network or nah
 if [[ $FQUES =~ ^y|Y(es)?$ ]] || [[ ! `ping -c 4 -q 8.8.8.8` ]]; then
 	read -p "enter your ip: " IPADDR 
@@ -145,7 +147,7 @@ fi
 if [[ $QXEN =~ y|Y(es)$? ]]; then
 	xentin
 fi
-
+##ansible
 ##installs Webserver 
 yum grouplist
 yum groupinstall "Basic Web Server" -y
@@ -169,6 +171,7 @@ chkconfig lsyncd on
 mkdir /$USER/dockerstuff && chmod -R 775 /$USER/dockerstuff
 mkdir /$USER/websitestuff && chmod -R 775 /$USER/websitestuff
 
+##dockerfile
 
 ##commnds for docker
 BAST="apt update ;
@@ -217,6 +220,8 @@ firewall-cmd --zone=public --permanent --add-port=443/tcp
 firewall-cmd --zone=public --permanent --add-port=443/udp
 firewall-cmd --reload
 
+
+##dockerfile
 ##setup docker brakets nodejs server
 docker run --privileged -dit -p $PRAN:$PRAN -p $PBRA:$PBRA -v /$USER/websitestuff:/var/www --name nodejsserver ubuntu  
 docker exec -ti nodejsserver /bin/bash -c  "$NODES"
